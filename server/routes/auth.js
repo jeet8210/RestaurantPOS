@@ -24,7 +24,6 @@ router.post('/setup-admin', async (req, res) => {
         message: 'Admin already exists. Use /login.'
       });
     }
-a
     const hashed = await bcrypt.hash(password, 10);
 
     const user = await User.create({
