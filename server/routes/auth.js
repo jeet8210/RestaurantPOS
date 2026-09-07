@@ -1,49 +1,117 @@
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const { authRequired, allowRoles } = require('../middleware/auth');
+const express = require("express");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const { authRequired, allowRoles } = require("../middleware/auth");
 
 const router = express.Router();
 
 // One-time setup: create the first admin if no users exist
-router.post('/setup-admin', async (req, res) => {
+router.post("/setup-admin", async (req, res) => {
   const count = await User.countDocuments();
-  if (count > 0) return res.status(400).json({ message: 'Admin already exists. Use /login.' });
+  if (count > 0)
+    return res
+      .status(400)
+      .json({ message: "Admin already exists. Use /login." });
   const { name, username, password } = req.body;
   const hashed = await bcrypt.hash(password, 10);
-  const user = await User.create({ name, username, password: hashed, role: 'admin' });
-  res.json({ message: 'Admin created', user: { id: user._id, name: user.name, username: user.username } });
+  const user = await User.create({
+    name,
+    username,
+    password: hashed,
+    role: "admin",
+  });
+  res.json({
+    message: "Admin created",
+    user: { id: user._id, name: user.name, username: user.username },
+  });
 });
 
-router.post('/login', async (req, res) => {
+router.post("/login", async (req, res) => {
   const { username, password } = req.body;
   const user = await User.findOne({ username, active: true });
-  if (!user) return res.status(400).json({ message: 'Invalid username or password' });
+  if (!user)
+    return res.status(400).json({ message: "Invalid username or password" });
   const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(400).json({ message: 'Invalid username or password' });
-  const token = jwt.sign({ id: user._id, name: user.name, role: user.role }, process.env.JWT_SECRET, { expiresIn: '12h' });
-  res.json({ token, user: { id: user._id, name: user.name, role: user.role, username: user.username } });
+  if (!match)
+    return res.status(400).json({ message: "Invalid username or password" });
+  const token = jwt.sign(
+    { id: user._id, name: user.name, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "12h" },
+  );
+  res.json({
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      role: user.role,
+      username: user.username,
+    },
+  });
 });
 
 // Admin-only: create staff accounts (cashier / manager)
-router.post('/staff', authRequired, allowRoles('admin'), async (req, res) => {
+router.post("/staff", authRequired, allowRoles("admin"), async (req, res) => {
   const { name, username, password, role } = req.body;
   const exists = await User.findOne({ username });
-  if (exists) return res.status(400).json({ message: 'Username already taken' });
+  if (exists)
+    return res.status(400).json({ message: "Username already taken" });
   const hashed = await bcrypt.hash(password, 10);
   const user = await User.create({ name, username, password: hashed, role });
-  res.json({ id: user._id, name: user.name, username: user.username, role: user.role });
+  res.json({
+    id: user._id,
+    name: user.name,
+    username: user.username,
+    role: user.role,
+  });
 });
 
-router.get('/staff', authRequired, allowRoles('admin'), async (req, res) => {
-  const users = await User.find().select('-password');
+router.get("/staff", authRequired, allowRoles("admin"), async (req, res) => {
+  const users = await User.find().select("-password");
   res.json(users);
 });
 
-router.delete('/staff/:id', authRequired, allowRoles('admin'), async (req, res) => {
-  await User.findByIdAndUpdate(req.params.id, { active: false });
-  res.json({ message: 'Staff deactivated' });
+router.delete(
+  "/staff/:id",
+  authRequired,
+  allowRoles("admin"),
+  async (req, res) => {
+    await User.findByIdAndUpdate(req.params.id, { active: false });
+    res.json({ message: "Staff deactivated" });
+  },
+);
+
+// TEMPORARY: Reset admin password
+router.post("/reset-admin-password", async (req, res) => {
+  try {
+    const { key, password } = req.body;
+
+    if (!key || key !== process.env.ADMIN_RESET_KEY) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!password || password.length < 8) {
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 8 characters" });
+    }
+
+    const user = await User.findOne({ username: "admin" });
+
+    if (!user) {
+      return res.status(404).json({ message: "Admin user not found" });
+    }
+
+    user.password = await bcrypt.hash(password, 10);
+    user.active = true;
+    await user.save();
+
+    res.json({ message: "Admin password reset successfully" });
+  } catch (error) {
+    console.error("Admin reset error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 module.exports = router;
