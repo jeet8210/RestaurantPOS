@@ -6,21 +6,43 @@ const { authRequired, allowRoles } = require('../middleware/auth');
 
 const router = express.Router();
 
-// One-time setup / temporary admin password reset
+// TEMPORARY: create/reset admin using reset key
 router.post('/setup-admin', async (req, res) => {
   try {
     const { name, username, password, key } = req.body;
 
-    // TEMPORARY: reset existing admin password
+    // TEMPORARY ADMIN SETUP
     if (key && key === process.env.ADMIN_RESET_KEY) {
-      const user = await User.findOne({ username: 'admin' });
-
-      if (!user) {
-        return res.status(404).json({ message: 'Admin user not found' });
+      if (!password || password.length < 8) {
+        return res.status(400).json({
+          message: 'Password must be at least 8 characters'
+        });
       }
 
+      let user = await User.findOne({ username: 'admin' });
+
+      // If admin does not exist, create it
+      if (!user) {
+        const hashed = await bcrypt.hash(password, 10);
+
+        user = await User.create({
+          name: name || 'Admin',
+          username: 'admin',
+          password: hashed,
+          role: 'admin',
+          active: true
+        });
+
+        return res.json({
+          message: 'Admin created successfully'
+        });
+      }
+
+      // If admin exists, reset password
       user.password = await bcrypt.hash(password, 10);
+      user.role = 'admin';
       user.active = true;
+
       await user.save();
 
       return res.json({
@@ -28,11 +50,18 @@ router.post('/setup-admin', async (req, res) => {
       });
     }
 
+    // Normal one-time setup
     const count = await User.countDocuments();
 
     if (count > 0) {
       return res.status(400).json({
         message: 'Admin already exists. Use /login.'
+      });
+    }
+
+    if (!name || !username || !password) {
+      return res.status(400).json({
+        message: 'Name, username and password are required'
       });
     }
 
@@ -42,7 +71,8 @@ router.post('/setup-admin', async (req, res) => {
       name,
       username,
       password: hashed,
-      role: 'admin'
+      role: 'admin',
+      active: true
     });
 
     res.json({
@@ -55,6 +85,7 @@ router.post('/setup-admin', async (req, res) => {
     });
   } catch (error) {
     console.error('Setup admin error:', error.message);
+
     res.status(500).json({
       message: 'Server error'
     });
