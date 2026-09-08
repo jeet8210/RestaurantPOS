@@ -1,21 +1,28 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const orderItemSchema = new mongoose.Schema(
   {
-    product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-    name: String, // snapshot at time of billing
-    price: Number, // snapshot
-    gst: Number, // snapshot
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+    },
+
+    name: String,
+
+    price: Number,
+
+    gst: Number,
+
     qty: Number,
   },
-  { _id: false },
+  { _id: false }
 );
 
 const paymentSchema = new mongoose.Schema(
   {
     mode: {
       type: String,
-      enum: ["Cash", "UPI", "Card"],
+      enum: ['Cash', 'UPI', 'Card'],
       required: true,
     },
 
@@ -27,34 +34,51 @@ const paymentSchema = new mongoose.Schema(
 
     reference: {
       type: String,
-      default: "",
+      default: '',
       trim: true,
     },
   },
-  { _id: false },
+  { _id: false }
 );
 
 const orderSchema = new mongoose.Schema(
   {
-    billNo: { type: Number, required: true, unique: true },
+    billNo: {
+      type: Number,
+      required: true,
+    },
+
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Restaurant',
+      required: true,
+      index: true,
+    },
+
     items: [orderItemSchema],
+
     table: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Table",
+      ref: 'Table',
       default: null,
     },
+
     orderType: {
       type: String,
-      enum: ["Dine In", "Takeaway", "Delivery"],
-      default: "Dine In",
+      enum: ['Dine In', 'Takeaway', 'Delivery'],
+      default: 'Dine In',
     },
+
     customer: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Customer",
+      ref: 'Customer',
       default: null,
     },
+
     waiter: String,
+
     pax: Number,
+
     subtotal: Number,
 
     discount: {
@@ -64,8 +88,8 @@ const orderSchema = new mongoose.Schema(
 
     discountType: {
       type: String,
-      enum: ["amount", "percent"],
-      default: "amount",
+      enum: ['amount', 'percent'],
+      default: 'amount',
     },
 
     serviceCharge: {
@@ -75,33 +99,50 @@ const orderSchema = new mongoose.Schema(
 
     gstMode: {
       type: String,
-      enum: ["inclusive", "exclusive"],
-      default: "exclusive",
+      enum: ['inclusive', 'exclusive'],
+      default: 'exclusive',
     },
 
     cgst: Number,
+
     sgst: Number,
+
     grandTotal: Number,
-    payments: [paymentSchema], // supports split payment e.g. half Cash half UPI
+
+    payments: [paymentSchema],
+
     paymentMode: {
       type: String,
-      enum: ["Cash", "UPI", "Card", "Split"],
-      default: "Cash",
+      enum: ['Cash', 'UPI', 'Card', 'Split'],
+      default: 'Cash',
     },
+
     status: {
       type: String,
-      enum: ["open", "paid", "cancelled"],
-      default: "paid",
-    }, // 'open' = held bill
-    heldLabel: String, // optional label for a held bill, e.g. "Table 4" or customer name
+      enum: ['open', 'paid', 'cancelled'],
+      default: 'paid',
+    },
+
+    heldLabel: String,
+
     kitchenStatus: {
       type: String,
-      enum: ["preparing", "ready", "served"],
-      default: "preparing",
+      enum: ['preparing', 'ready', 'served'],
+      default: 'preparing',
     },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
-module.exports = mongoose.model("Order", orderSchema);
+// Bill number is unique only inside its restaurant
+orderSchema.index(
+  { restaurantId: 1, billNo: 1 },
+  { unique: true }
+);
+
+module.exports = mongoose.model('Order', orderSchema);
