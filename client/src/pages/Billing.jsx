@@ -72,15 +72,16 @@ export default function Billing() {
     setHeldBills(data);
   }
   async function loadSettings() {
-    try {
-      const { data } = await api.get("/settings");
+  try {
+    const { data } = await api.get("/settings");
 
-      setUpiId(data.upiId || "");
-      setRestaurantName(data.restaurantName || "My Restaurant");
-    } catch (error) {
-      console.error("Failed to load settings:", error);
-    }
+    setSettings(data);
+    setUpiId(data.upiId || "");
+    setRestaurantName(data.restaurantName || "My Restaurant");
+  } catch (error) {
+    console.error("Failed to load settings:", error);
   }
+}
 
   function addToCart(product) {
     setCart((current) => ({
@@ -1220,257 +1221,532 @@ export default function Billing() {
         </div>
       </div>
 
-      {/* ================= PROFESSIONAL RECEIPT ================= */}
-      {receipt && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50"
-          onClick={() => setReceipt(null)}
-        >
-          <div
-            className="print-receipt bg-white w-full max-w-[380px] max-h-[90vh] overflow-y-auto shadow-2xl rounded-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* SCREEN HEADER */}
-            <div className="no-print bg-leafdark text-white px-4 py-3 flex items-center justify-between">
-              <div>
-                <div className="text-[9px] uppercase tracking-wider opacity-70">
-                  Bill Generated
-                </div>
+      {/* ================= PREMIUM RECEIPT ================= */}
+      {/* ================= FINAL PREMIUM 80MM RECEIPT ================= */}
+{receipt && (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3"
+    onClick={() => setReceipt(null)}
+  >
+    <div
+      className="premium-receipt-modal"
+      onClick={(e) => e.stopPropagation()}
+    >
 
-                <div className="font-bold text-base">
-                  Bill #{receipt.billNo}
-                </div>
-              </div>
+      {/* SCREEN HEADER */}
+      <div className="premium-receipt-topbar no-print">
+        <div>
+          <div className="premium-top-label">
+            BILL GENERATED
+          </div>
 
-              <button
-                onClick={() => setReceipt(null)}
-                className="text-white/70 hover:text-white text-xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* RECEIPT BODY */}
-            <div className="receipt-body px-5 py-5 text-black">
-              {/* RESTAURANT HEADER */}
-              <div className="text-center border-b border-dashed border-gray-400 pb-3">
-                <div className="text-xl font-extrabold uppercase">
-                  {restaurantName || "Restaurant POS"}
-                </div>
-
-                <div className="text-[10px] mt-1">TAX INVOICE</div>
-
-                <div className="text-[9px] text-gray-600 mt-2">
-                  {receipt.orderType || "Dine In"}
-                </div>
-              </div>
-
-              {/* BILL INFORMATION */}
-              <div className="py-3 border-b border-dashed border-gray-400 text-[10px]">
-                <div className="flex justify-between">
-                  <span>Bill No.</span>
-                  <strong>#{receipt.billNo}</strong>
-                </div>
-
-                <div className="flex justify-between mt-1">
-                  <span>Date</span>
-                  <span>
-                    {receipt.createdAt
-                      ? new Date(receipt.createdAt).toLocaleDateString("en-IN")
-                      : new Date().toLocaleDateString("en-IN")}
-                  </span>
-                </div>
-
-                <div className="flex justify-between mt-1">
-                  <span>Time</span>
-                  <span>
-                    {receipt.createdAt
-                      ? new Date(receipt.createdAt).toLocaleTimeString(
-                          "en-IN",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )
-                      : new Date().toLocaleTimeString("en-IN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                  </span>
-                </div>
-
-                {receipt.customer?.name && (
-                  <div className="flex justify-between mt-1">
-                    <span>Customer</span>
-                    <span>{receipt.customer.name}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* ITEMS HEADER */}
-              <div className="py-2 border-b border-gray-300">
-                <div className="grid grid-cols-[1fr_35px_75px] text-[9px] font-bold uppercase">
-                  <span>Item</span>
-                  <span className="text-center">Qty</span>
-                  <span className="text-right">Amount</span>
-                </div>
-              </div>
-
-              {/* ITEMS */}
-              <div className="py-2 border-b border-dashed border-gray-400">
-                {receipt.items.map((item, index) => (
-                  <div key={index} className="mb-2 last:mb-0">
-                    <div className="grid grid-cols-[1fr_35px_75px] text-[10px]">
-                      <span className="font-semibold pr-2">{item.name}</span>
-
-                      <span className="text-center">{item.qty}</span>
-
-                      <span className="text-right font-semibold">
-                        ₹{(Number(item.price) * Number(item.qty)).toFixed(2)}
-                      </span>
-                    </div>
-
-                    <div className="text-[8px] text-gray-500 mt-0.5">
-                      ₹{Number(item.price).toFixed(2)} × {item.qty}
-                      {" • "}GST {Number(item.gst || 0)}%
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* SUMMARY */}
-              <div className="py-3 border-b border-gray-400 text-[10px] space-y-1.5">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>₹{Number(receipt.subtotal || 0).toFixed(2)}</span>
-                </div>
-
-                {Number(receipt.discount || 0) > 0 && (
-                  <div className="flex justify-between">
-                    <span>Discount</span>
-                    <span>-₹{Number(receipt.discount).toFixed(2)}</span>
-                  </div>
-                )}
-
-                {Number(receipt.cgst || 0) > 0 && (
-                  <div className="flex justify-between">
-                    <span>CGST</span>
-                    <span>₹{Number(receipt.cgst).toFixed(2)}</span>
-                  </div>
-                )}
-
-                {Number(receipt.sgst || 0) > 0 && (
-                  <div className="flex justify-between">
-                    <span>SGST</span>
-                    <span>₹{Number(receipt.sgst).toFixed(2)}</span>
-                  </div>
-                )}
-
-                {Number(receipt.serviceCharge || 0) > 0 && (
-                  <div className="flex justify-between">
-                    <span>Service Charge</span>
-                    <span>₹{Number(receipt.serviceCharge).toFixed(2)}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* GRAND TOTAL */}
-              <div className="py-3 border-b border-dashed border-gray-400">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-extrabold">GRAND TOTAL</span>
-
-                  <span className="text-xl font-extrabold">
-                    ₹{Number(receipt.grandTotal || 0).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              {/* PAYMENT */}
-              <div className="py-3 border-b border-dashed border-gray-400 text-[10px]">
-                <div className="flex justify-between">
-                  <span>Payment Mode</span>
-
-                  <strong>{receipt.paymentMode || "Cash"}</strong>
-                </div>
-
-                {(receipt.payments || []).map((payment, index) => (
-                  <div
-                    key={index}
-                    className="flex justify-between mt-1 text-gray-600"
-                  >
-                    <span>{payment.mode}</span>
-
-                    <span>₹{Number(payment.amount || 0).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* UPI QR */}
-              {upiId && Number(receipt.grandTotal || 0) > 0 && (
-                <div className="py-4 text-center border-b border-dashed border-gray-400">
-                  <div className="text-[10px] font-bold mb-2">
-                    SCAN & PAY VIA UPI
-                  </div>
-
-                  <div className="flex justify-center">
-                    <QRCodeSVG
-                      value={`upi://pay?pa=${encodeURIComponent(
-                        upiId,
-                      )}&pn=${encodeURIComponent(
-                        restaurantName || "Restaurant POS",
-                      )}&am=${Number(receipt.grandTotal).toFixed(2)}&cu=INR`}
-                      size={135}
-                      level="M"
-                    />
-                  </div>
-
-                  <div className="text-[9px] mt-2">{upiId}</div>
-
-                  <div className="text-[10px] font-bold mt-1">
-                    ₹{Number(receipt.grandTotal).toFixed(2)}
-                  </div>
-                </div>
-              )}
-
-              {/* FOOTER */}
-              <div className="text-center pt-4">
-                <div className="text-[10px] font-bold">Thank You!</div>
-
-                <div className="text-[9px] text-gray-500 mt-1">
-                  Please visit again
-                </div>
-
-                <div className="text-[8px] text-gray-400 mt-2">
-                  Powered by RestaurantPOS
-                </div>
-              </div>
-
-              {/* SCREEN BUTTONS */}
-              <div className="no-print grid grid-cols-3 gap-2 mt-5">
-                <button
-                  onClick={addMoreItemsToBill}
-                  className="border border-gold text-gold py-2.5 rounded-lg font-bold text-xs hover:bg-gold hover:text-white"
-                >
-                  Add More Items
-                </button>
-                <button
-                  onClick={() => window.print()}
-                  className="bg-leaf text-white py-2.5 rounded-lg font-bold text-sm"
-                >
-                  Print Receipt
-                </button>
-
-                <button
-                  onClick={() => setReceipt(null)}
-                  className="border border-gray-300 py-2.5 rounded-lg font-bold text-sm"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
+          <div className="premium-bill-number">
+            Bill #{receipt.billNo}
           </div>
         </div>
-      )}
+
+        <button
+          type="button"
+          onClick={() => setReceipt(null)}
+          className="premium-close"
+        >
+          ×
+        </button>
+      </div>
+
+
+      {/* ================= RECEIPT ================= */}
+      <div className="premium-receipt-paper">
+
+        {/* BRAND */}
+        <div className="premium-brand">
+
+          <div className="premium-logo">
+            ☕
+          </div>
+
+          <div className="premium-restaurant-name">
+            {restaurantName ||
+              settings?.restaurantName ||
+              "THE CAFE"}
+          </div>
+
+          {settings?.tagline && (
+            <div className="premium-tagline">
+              {settings.tagline}
+            </div>
+          )}
+
+          {settings?.address && (
+            <div className="premium-contact">
+              📍 {settings.address}
+            </div>
+          )}
+
+          {settings?.phone && (
+            <div className="premium-contact">
+              ☎ {settings.phone}
+            </div>
+          )}
+
+          {(settings?.gstin || settings?.fssai) && (
+            <div className="premium-contact premium-tax-details">
+              {settings?.gstin && (
+                <span>GSTIN: {settings.gstin}</span>
+              )}
+
+              {settings?.gstin && settings?.fssai && (
+                <span> | </span>
+              )}
+
+              {settings?.fssai && (
+                <span>FSSAI: {settings.fssai}</span>
+              )}
+            </div>
+          )}
+
+          {/* TAX INVOICE */}
+          <div className="premium-invoice-row">
+            <span></span>
+            <strong>TAX INVOICE</strong>
+            <span></span>
+          </div>
+
+          <div className="premium-order-badge">
+            {receipt.orderType || "Dine In"}
+          </div>
+
+        </div>
+
+
+        {/* ================= BILL INFO ================= */}
+        <div className="premium-bill-info">
+
+          <div className="premium-info-column">
+
+            <div className="premium-info-row">
+              <strong>Bill No.</strong>
+              <span>#{receipt.billNo}</span>
+            </div>
+
+            <div className="premium-info-row">
+              <strong>Date</strong>
+              <span>
+                {receipt.createdAt
+                  ? new Date(
+                      receipt.createdAt
+                    ).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })
+                  : new Date().toLocaleDateString(
+                      "en-IN"
+                    )}
+              </span>
+            </div>
+
+            <div className="premium-info-row">
+              <strong>Time</strong>
+              <span>
+                {receipt.createdAt
+                  ? new Date(
+                      receipt.createdAt
+                    ).toLocaleTimeString("en-IN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : new Date().toLocaleTimeString(
+                      "en-IN",
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    )}
+              </span>
+            </div>
+
+          </div>
+
+
+          <div className="premium-info-column">
+
+            {receipt.table && (
+              <div className="premium-info-row">
+                <strong>Table No.</strong>
+                <span>{receipt.table}</span>
+              </div>
+            )}
+
+            <div className="premium-info-row">
+              <strong>Order Type</strong>
+              <span>
+                {receipt.orderType || "Dine In"}
+              </span>
+            </div>
+
+            {receipt.cashier && (
+              <div className="premium-info-row">
+                <strong>Cashier</strong>
+                <span>{receipt.cashier}</span>
+              </div>
+            )}
+
+          </div>
+
+        </div>
+
+
+        {/* ================= CUSTOMER ================= */}
+        {(receipt.customer?.name ||
+          receipt.customer?.phone) && (
+          <div className="premium-customer">
+
+            <div className="premium-section-title">
+              CUSTOMER
+            </div>
+
+            {receipt.customer?.name && (
+              <div className="premium-customer-name">
+                {receipt.customer.name}
+              </div>
+            )}
+
+            {receipt.customer?.phone && (
+              <div className="premium-customer-phone">
+                {receipt.customer.phone}
+              </div>
+            )}
+
+          </div>
+        )}
+
+
+        {/* ================= ITEMS ================= */}
+        <div className="premium-items">
+
+          <div className="premium-items-head">
+            <span>#</span>
+            <span>ITEM</span>
+            <span>QTY</span>
+            <span>RATE</span>
+            <span>AMOUNT</span>
+          </div>
+
+
+          {receipt.items.map((item, index) => (
+            <div
+              key={index}
+              className="premium-item"
+            >
+
+              <div className="premium-item-number">
+                {index + 1}
+              </div>
+
+              <div className="premium-item-details">
+
+                <div className="premium-item-name">
+                  {item.name}
+                </div>
+
+                <div className="premium-item-sub">
+                  ₹{Number(item.price).toFixed(2)}
+                  {" × "}
+                  {item.qty}
+                  {" • "}
+                  GST {Number(item.gst || 0)}%
+                </div>
+
+              </div>
+
+              <div className="premium-item-qty">
+                {item.qty}
+              </div>
+
+              <div className="premium-item-rate">
+                ₹{Number(item.price).toFixed(2)}
+              </div>
+
+              <div className="premium-item-total">
+                ₹
+                {(
+                  Number(item.price) *
+                  Number(item.qty)
+                ).toFixed(2)}
+              </div>
+
+            </div>
+          ))}
+
+        </div>
+
+
+        {/* ================= SUMMARY ================= */}
+        <div className="premium-summary">
+
+          <div className="premium-summary-row">
+            <span>Subtotal</span>
+            <strong>
+              ₹
+              {Number(
+                receipt.subtotal || 0
+              ).toFixed(2)}
+            </strong>
+          </div>
+
+
+          {Number(receipt.discount || 0) > 0 && (
+            <div className="premium-summary-row discount">
+              <span>Discount</span>
+
+              <strong>
+                -₹
+                {Number(
+                  receipt.discount
+                ).toFixed(2)}
+              </strong>
+            </div>
+          )}
+
+
+          {Number(receipt.cgst || 0) > 0 && (
+            <div className="premium-summary-row">
+              <span>
+                CGST (
+                {Number(
+                  receipt.cgstRate || 2.5
+                )}
+                %)
+              </span>
+
+              <strong>
+                ₹
+                {Number(
+                  receipt.cgst
+                ).toFixed(2)}
+              </strong>
+            </div>
+          )}
+
+
+          {Number(receipt.sgst || 0) > 0 && (
+            <div className="premium-summary-row">
+              <span>
+                SGST (
+                {Number(
+                  receipt.sgstRate || 2.5
+                )}
+                %)
+              </span>
+
+              <strong>
+                ₹
+                {Number(
+                  receipt.sgst
+                ).toFixed(2)}
+              </strong>
+            </div>
+          )}
+
+
+          {Number(
+            receipt.serviceCharge || 0
+          ) > 0 && (
+            <div className="premium-summary-row">
+              <span>
+                Service Charge
+              </span>
+
+              <strong>
+                ₹
+                {Number(
+                  receipt.serviceCharge
+                ).toFixed(2)}
+              </strong>
+            </div>
+          )}
+
+        </div>
+
+
+        {/* ================= GRAND TOTAL ================= */}
+        <div className="premium-grand-total">
+
+          <span>GRAND TOTAL</span>
+
+          <strong>
+            ₹
+            {Number(
+              receipt.grandTotal || 0
+            ).toFixed(2)}
+          </strong>
+
+        </div>
+
+
+        {/* ================= PAYMENT ================= */}
+        <div className="premium-payment">
+
+          <div className="premium-payment-check">
+            ✓
+          </div>
+
+          <div className="premium-payment-text">
+            <strong>
+              Payment Mode
+            </strong>
+
+            <span>
+              {receipt.paymentMode ||
+                "Cash"}
+            </span>
+          </div>
+
+          <div className="premium-payment-amount">
+
+            <strong>
+              {(
+                receipt.paymentMode ||
+                "CASH"
+              ).toUpperCase()}
+            </strong>
+
+            <span>
+              ₹
+              {Number(
+                receipt.grandTotal || 0
+              ).toFixed(2)}
+            </span>
+
+          </div>
+
+        </div>
+
+
+        {/* ================= UPI ================= */}
+        {upiId &&
+          Number(
+            receipt.grandTotal || 0
+          ) > 0 && (
+
+          <div className="premium-upi">
+
+            <div className="premium-upi-heading">
+              SCAN & PAY VIA UPI
+            </div>
+
+            <div className="premium-upi-subtitle">
+              Secure & Fast Payment
+            </div>
+
+
+            <div className="premium-qr-wrapper">
+
+              <QRCodeSVG
+                value={`upi://pay?pa=${encodeURIComponent(
+                  upiId
+                )}&pn=${encodeURIComponent(
+                  restaurantName ||
+                    settings?.restaurantName ||
+                    "Restaurant POS"
+                )}&am=${Number(
+                  receipt.grandTotal
+                ).toFixed(
+                  2
+                )}&cu=INR`}
+                size={165}
+                level="M"
+              />
+
+            </div>
+
+
+            <div className="premium-upi-id">
+              {upiId}
+            </div>
+
+            <div className="premium-upi-amount">
+              ₹
+              {Number(
+                receipt.grandTotal
+              ).toFixed(2)}
+            </div>
+
+
+            <div className="premium-upi-apps">
+              <span>GPay</span>
+              <span>PhonePe</span>
+              <span>Paytm</span>
+              <span>BHIM</span>
+            </div>
+
+          </div>
+        )}
+
+
+        {/* ================= FOOTER ================= */}
+        <div className="premium-footer">
+
+          <div className="premium-thank-you">
+            Thank You!
+          </div>
+
+          <div className="premium-visit">
+            PLEASE VISIT AGAIN
+          </div>
+
+          <div className="premium-footer-line"></div>
+
+          <div className="premium-footer-features">
+            <span>🌿 GREAT FOOD</span>
+            <span>♥ HAPPY PEOPLE</span>
+            <span>★ GOOD TIMES</span>
+          </div>
+
+          {/* <div className="premium-powered">
+            Powered by{" "}
+            <strong>
+              RestaurantPOS
+            </strong>
+          </div> */}
+
+        </div>
+
+
+        {/* ================= BUTTONS ================= */}
+        <div className="premium-actions no-print">
+
+          <button
+            type="button"
+            onClick={addMoreItemsToBill}
+            className="premium-action add"
+          >
+            ⊕ Add More
+          </button>
+
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="premium-action print"
+          >
+            🖨 Print Receipt
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setReceipt(null)}
+            className="premium-action close"
+          >
+            × Close
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

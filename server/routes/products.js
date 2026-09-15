@@ -1,110 +1,147 @@
-const express = require('express');
+const express = require("express");
 
-const Product = require('../models/Product');
-const AuditLog = require('../models/AuditLog');
+const Product = require("../models/Product");
+const AuditLog = require("../models/AuditLog");
 
-const { authRequired, allowRoles } = require('../middleware/auth');
+const { authRequired, allowRoles } = require("../middleware/auth");
 
 const router = express.Router();
 
-// GET all active products of logged-in restaurant
-router.get('/', authRequired, async (req, res) => {
+// ======================================================
+// GET ALL ACTIVE PRODUCTS
+// Only products belonging to logged-in restaurant
+// ======================================================
+router.get("/", authRequired, async (req, res) => {
   try {
     const products = await Product.find({
       active: true,
-      restaurantId: req.user.restaurantId
-    }).populate('category');
+      restaurantId: req.user.restaurantId,
+    }).populate("category");
 
     res.json(products);
   } catch (error) {
-    console.error('Get products error:', error.message);
+    console.error("Get products error:", error.message);
+
     res.status(500).json({
-      message: 'Server error'
+      message: "Server error",
     });
   }
 });
 
-// CREATE product inside logged-in restaurant
+// ======================================================
+// CREATE PRODUCT
+// Always assign logged-in restaurantId from server
+// ======================================================
 router.post(
-  '/',
+  "/",
   authRequired,
-  allowRoles('admin', 'manager'),
+  allowRoles("admin", "manager"),
   async (req, res) => {
     try {
+      const { name, category, price, gst, active } = req.body;
+
+      if (!name || !category || price === undefined) {
+        return res.status(400).json({
+          message: "Name, category and price are required",
+        });
+      }
+
       const product = await Product.create({
-        ...req.body,
-        restaurantId: req.user.restaurantId
+        name,
+        category,
+        price,
+        gst: gst ?? 5,
+        active: active ?? true,
+        restaurantId: req.user.restaurantId,
       });
 
-      res.json(product);
+      res.status(201).json(product);
     } catch (error) {
-      console.error('Create product error:', error.message);
+      console.error("Create product error:", error.message);
+
       res.status(500).json({
-        message: 'Server error'
+        message: "Server error",
       });
     }
   }
 );
 
-// UPDATE only product belonging to logged-in restaurant
+// ======================================================
+// UPDATE PRODUCT
+// Only product belonging to logged-in restaurant
+// restaurantId can NEVER be changed from req.body
+// ======================================================
 router.put(
-  '/:id',
+  "/:id",
   authRequired,
-  allowRoles('admin', 'manager'),
+  allowRoles("admin", "manager"),
   async (req, res) => {
     try {
+      const { name, category, price, gst, active } = req.body;
+
       const product = await Product.findOneAndUpdate(
         {
           _id: req.params.id,
-          restaurantId: req.user.restaurantId
+          restaurantId: req.user.restaurantId,
         },
         {
-          $set: req.body
+          $set: {
+            name,
+            category,
+            price,
+            gst,
+            active,
+          },
         },
         {
-          new: true
+          new: true,
+          runValidators: true,
         }
       );
 
       if (!product) {
         return res.status(404).json({
-          message: 'Product not found'
+          message: "Product not found",
         });
       }
 
       res.json(product);
     } catch (error) {
-      console.error('Update product error:', error.message);
+      console.error("Update product error:", error.message);
+
       res.status(500).json({
-        message: 'Server error'
+        message: "Server error",
       });
     }
   }
 );
 
-// DELETE/deactivate only product belonging to logged-in restaurant
+// ======================================================
+// DELETE / DEACTIVATE PRODUCT
+// Only product belonging to logged-in restaurant
+// ======================================================
 router.delete(
-  '/:id',
+  "/:id",
   authRequired,
-  allowRoles('admin', 'manager'),
+  allowRoles("admin", "manager"),
   async (req, res) => {
     try {
       const product = await Product.findOneAndUpdate(
         {
           _id: req.params.id,
-          restaurantId: req.user.restaurantId
+          restaurantId: req.user.restaurantId,
         },
         {
-          active: false
+          active: false,
         },
         {
-          new: true
+          new: true,
         }
       );
 
       if (!product) {
         return res.status(404).json({
-          message: 'Product not found'
+          message: "Product not found",
         });
       }
 
@@ -112,18 +149,19 @@ router.delete(
         user: req.user.id,
         userName: req.user.name,
         restaurantId: req.user.restaurantId,
-        action: 'DELETE_PRODUCT',
+        action: "DELETE_PRODUCT",
         target: product.name,
-        details: 'Item removed from menu'
+        details: "Item removed from menu",
       });
 
       res.json({
-        message: 'Product removed'
+        message: "Product removed",
       });
     } catch (error) {
-      console.error('Delete product error:', error.message);
+      console.error("Delete product error:", error.message);
+
       res.status(500).json({
-        message: 'Server error'
+        message: "Server error",
       });
     }
   }

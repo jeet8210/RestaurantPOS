@@ -1,19 +1,24 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+
 const User = require("../models/User");
 const Restaurant = require("../models/Restaurant");
+
 const { authRequired, allowRoles } = require("../middleware/auth");
 
 const router = express.Router();
 
-// TEMPORARY: create/reset admin using reset key
-// TEMPORARY: create/reset admin using reset key
+// ======================================================
+// TEMPORARY: Create / Reset Admin
+// ======================================================
 router.post("/setup-admin", async (req, res) => {
   try {
     const { name, username, password, key } = req.body;
 
-    // TEMPORARY ADMIN SETUP
+    // --------------------------------------------------
+    // ADMIN RESET USING SECRET KEY
+    // --------------------------------------------------
     if (key && key === process.env.ADMIN_RESET_KEY) {
       if (!password || password.length < 8) {
         return res.status(400).json({
@@ -21,20 +26,26 @@ router.post("/setup-admin", async (req, res) => {
         });
       }
 
-      let user = await User.findOne({ username: "admin" });
+      const cleanUsername = (username || "admin").trim().toLowerCase();
 
-      // If admin does not exist, create admin + restaurant
+      let user = await User.findOne({
+        username: cleanUsername,
+      });
+
+      // ------------------------------------------------
+      // Admin does not exist -> create restaurant + admin
+      // ------------------------------------------------
       if (!user) {
         const hashed = await bcrypt.hash(password, 10);
 
         const restaurant = await Restaurant.create({
-          name: name || "My Restaurant",
+          name: name?.trim() || "My Restaurant",
           active: true,
         });
 
         user = await User.create({
-          name: name || "Admin",
-          username: "admin",
+          name: name?.trim() || "Admin",
+          username: cleanUsername,
           password: hashed,
           role: "admin",
           restaurantId: restaurant._id,
@@ -49,20 +60,25 @@ router.post("/setup-admin", async (req, res) => {
         });
       }
 
-      // Existing admin already has restaurant
+      // ------------------------------------------------
+      // Existing user has no restaurant -> create one
+      // ------------------------------------------------
       if (!user.restaurantId) {
         const restaurant = await Restaurant.create({
-          name: name || "My Restaurant",
+          name: name?.trim() || "My Restaurant",
           active: true,
         });
 
         user.restaurantId = restaurant._id;
+
         restaurant.owner = user._id;
 
         await restaurant.save();
       }
 
-      // Reset password
+      // ------------------------------------------------
+      // Reset admin
+      // ------------------------------------------------
       user.password = await bcrypt.hash(password, 10);
       user.role = "admin";
       user.active = true;
@@ -74,7 +90,9 @@ router.post("/setup-admin", async (req, res) => {
       });
     }
 
-    // Normal one-time setup
+    // ==================================================
+    // NORMAL ONE-TIME ADMIN SETUP
+    // ==================================================
     const count = await User.countDocuments();
 
     if (count > 0) {
@@ -89,7 +107,17 @@ router.post("/setup-admin", async (req, res) => {
       });
     }
 
-    const existingUsername = await User.findOne({ username });
+    if (password.length < 8) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters",
+      });
+    }
+
+    const cleanUsername = username.trim().toLowerCase();
+
+    const existingUsername = await User.findOne({
+      username: cleanUsername,
+    });
 
     if (existingUsername) {
       return res.status(400).json({
@@ -99,16 +127,16 @@ router.post("/setup-admin", async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    // Create restaurant first
+    // Create restaurant
     const restaurant = await Restaurant.create({
       name: "My Restaurant",
       active: true,
     });
 
-    // Create admin inside that restaurant
+    // Create admin inside restaurant
     const user = await User.create({
-      name,
-      username,
+      name: name.trim(),
+      username: cleanUsername,
       password: hashed,
       role: "admin",
       restaurantId: restaurant._id,
@@ -119,7 +147,7 @@ router.post("/setup-admin", async (req, res) => {
     restaurant.owner = user._id;
     await restaurant.save();
 
-    res.json({
+    res.status(201).json({
       message: "Admin created",
       user: {
         id: user._id,
@@ -138,127 +166,236 @@ router.post("/setup-admin", async (req, res) => {
   }
 });
 
+// ======================================================
+// LOGIN
+// ======================================================
 router.post("/login", async (req, res) => {
-  const { username, password } = req.body;
+  try {
+    const username = req.body.username?.trim().toLowerCase();
+    const { password } = req.body;
 
-  const user = await User.findOne({
-    username,
-    active: true,
-  });
+    if (!username || !password) {
+      return res.status(400).json({
+        message: "Username and password are required",
+      });
+    }
 
-  if (!user) {
-    return res.status(400).json({
-      message: "Invalid username or password",
+    const user = await User.findOne({
+      username,
+      active: true,
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid username or password",
+      });
+    }
+
+    // Important: old users without restaurantId cannot
+    // access the multi-tenant application.
+    if (!user.restaurantId) {
+      return res.status(403).json({
+        message:
+          "This account is not linked to a restaurant. Please contact the administrator.",
+      });
+    }
+
+    const match = await bcrypt.compare(password, user.password);
+
+    if (!match) {
+      return res.status(400).json({
+        message: "Invalid username or password",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id: user._id,
+        name: user.name,
+        role: user.role,
+        username: user.username,
+        restaurantId: user.restaurantId,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "12h",
+      }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        role: user.role,
+        username: user.username,
+        restaurantId: user.restaurantId,
+      },
+    });
+  } catch (error) {
+    console.error("Login error:", error.message);
+
+    res.status(500).json({
+      message: "Server error",
     });
   }
+});
 
-  const match = await bcrypt.compare(password, user.password);
+// ======================================================
+// ADMIN: CREATE STAFF
+// ======================================================
+router.post(
+  "/staff",
+  authRequired,
+  allowRoles("admin"),
+  async (req, res) => {
+    try {
+      const { name, username, password, role } = req.body;
 
-  if (!match) {
-    return res.status(400).json({
-      message: "Invalid username or password",
-    });
+      if (!name || !username || !password || !role) {
+        return res.status(400).json({
+          message: "Name, username, password and role are required",
+        });
+      }
+
+      if (password.length < 8) {
+        return res.status(400).json({
+          message: "Password must be at least 8 characters",
+        });
+      }
+
+      // Only allowed staff roles
+      if (!["manager", "cashier"].includes(role)) {
+        return res.status(400).json({
+          message: "Staff role must be manager or cashier",
+        });
+      }
+
+      const cleanUsername = username.trim().toLowerCase();
+
+      // Username is globally unique in the current system
+      const exists = await User.findOne({
+        username: cleanUsername,
+      });
+
+      if (exists) {
+        return res.status(400).json({
+          message: "Username already taken",
+        });
+      }
+
+      const hashed = await bcrypt.hash(password, 10);
+
+      // IMPORTANT:
+      // Staff gets the SAME restaurantId as the logged-in admin
+      const user = await User.create({
+        name: name.trim(),
+        username: cleanUsername,
+        password: hashed,
+        role,
+        restaurantId: req.user.restaurantId,
+        active: true,
+      });
+
+      res.status(201).json({
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        role: user.role,
+        restaurantId: user.restaurantId,
+      });
+    } catch (error) {
+      console.error("Create staff error:", error.message);
+
+      res.status(500).json({
+        message: "Failed to create staff account",
+      });
+    }
   }
+);
 
-  const token = jwt.sign(
-    {
-      id: user._id,
-      name: user.name,
-      role: user.role,
-      username: user.username,
-      restaurantId: user.restaurantId,
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "12h",
-    },
-  );
+// ======================================================
+// ADMIN: GET STAFF
+// ======================================================
+router.get(
+  "/staff",
+  authRequired,
+  allowRoles("admin"),
+  async (req, res) => {
+    try {
+      const users = await User.find({
+        restaurantId: req.user.restaurantId,
+      })
+        .select("-password")
+        .sort({ createdAt: -1 });
 
-  res.json({
-    token,
-    user: {
-      id: user._id,
-      name: user.name,
-      role: user.role,
-      username: user.username,
-      restaurantId: user.restaurantId,
-    },
-  });
-});
+      res.json(users);
+    } catch (error) {
+      console.error("Get staff error:", error.message);
 
-// Admin-only: create staff accounts
-router.post("/staff", authRequired, allowRoles("admin"), async (req, res) => {
-  const { name, username, password, role } = req.body;
-
-  const exists = await User.findOne({ username });
-
-  if (exists) {
-    return res.status(400).json({
-      message: "Username already taken",
-    });
+      res.status(500).json({
+        message: "Failed to load staff",
+      });
+    }
   }
+);
 
-  const hashed = await bcrypt.hash(password, 10);
-
-  const user = await User.create({
-    name,
-    username,
-    password: hashed,
-    role,
-  });
-
-  res.json({
-    id: user._id,
-    name: user.name,
-    username: user.username,
-    role: user.role,
-  });
-});
-
-router.get("/staff", authRequired, allowRoles("admin"), async (req, res) => {
-  const users = await User.find({
-    restaurantId: req.user.restaurantId,
-  }).select("-password");
-
-  res.json(users);
-});
-
+// ======================================================
+// ADMIN: DEACTIVATE STAFF
+// ======================================================
 router.delete(
   "/staff/:id",
   authRequired,
   allowRoles("admin"),
   async (req, res) => {
-    const user = await User.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        restaurantId: req.user.restaurantId,
-      },
-      {
-        active: false,
-      },
-      {
-        new: true,
-      },
-    );
+    try {
+      const user = await User.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          restaurantId: req.user.restaurantId,
+        },
+        {
+          active: false,
+        },
+        {
+          new: true,
+        }
+      );
 
-    if (!user) {
-      return res.status(404).json({
-        message: "Staff member not found",
+      if (!user) {
+        return res.status(404).json({
+          message: "Staff member not found",
+        });
+      }
+
+      res.json({
+        message: "Staff deactivated",
+      });
+    } catch (error) {
+      console.error("Delete staff error:", error.message);
+
+      res.status(500).json({
+        message: "Failed to deactivate staff",
       });
     }
-
-    res.json({
-      message: "Staff deactivated",
-    });
-  },
+  }
 );
 
-// PUBLIC: Create a new restaurant + admin account
+// ======================================================
+// PUBLIC: RESTAURANT SIGNUP
+// ======================================================
 router.post("/signup", async (req, res) => {
   try {
-    const { restaurantName, name, username, password } = req.body;
+    const {
+      restaurantName,
+      name,
+      username,
+      password,
+    } = req.body;
 
-    // Validate required fields
+    // --------------------------------------------------
+    // Validate
+    // --------------------------------------------------
     if (!restaurantName || !name || !username || !password) {
       return res.status(400).json({
         message:
@@ -266,17 +403,25 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // Password validation
     if (password.length < 8) {
       return res.status(400).json({
         message: "Password must be at least 8 characters",
       });
     }
 
-    // Clean username
+    const cleanRestaurantName = restaurantName.trim();
+    const cleanName = name.trim();
     const cleanUsername = username.trim().toLowerCase();
 
-    // Check username globally
+    if (!cleanRestaurantName || !cleanName || !cleanUsername) {
+      return res.status(400).json({
+        message: "All fields are required",
+      });
+    }
+
+    // --------------------------------------------------
+    // Username must currently be globally unique
+    // --------------------------------------------------
     const existingUser = await User.findOne({
       username: cleanUsername,
     });
@@ -287,19 +432,22 @@ router.post("/signup", async (req, res) => {
       });
     }
 
+    // --------------------------------------------------
     // Create restaurant
+    // --------------------------------------------------
     const restaurant = await Restaurant.create({
-      name: restaurantName.trim(),
+      name: cleanRestaurantName,
       active: true,
     });
 
     try {
-      // Hash password
       const hashed = await bcrypt.hash(password, 10);
 
-      // Create Admin
+      // ------------------------------------------------
+      // Create restaurant admin
+      // ------------------------------------------------
       const user = await User.create({
-        name: name.trim(),
+        name: cleanName,
         username: cleanUsername,
         password: hashed,
         role: "admin",
@@ -307,8 +455,11 @@ router.post("/signup", async (req, res) => {
         active: true,
       });
 
+      // ------------------------------------------------
       // Set restaurant owner
+      // ------------------------------------------------
       restaurant.owner = user._id;
+
       await restaurant.save();
 
       return res.status(201).json({
@@ -324,6 +475,7 @@ router.post("/signup", async (req, res) => {
     } catch (userError) {
       // If user creation fails, remove restaurant
       await Restaurant.findByIdAndDelete(restaurant._id);
+
       throw userError;
     }
   } catch (error) {

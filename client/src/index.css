@@ -2,70 +2,1014 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================
+   GLOBAL
+========================================================= */
+
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: #F3EFE2;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+
+  background: #f3efe2;
+  color: #1f2933;
 }
 
-/* ================================
-   RESTAURANT POS PRINT RECEIPT
-================================ */
+
+/* =========================================================
+   RECEIPT MODAL / SCREEN PREVIEW
+========================================================= */
+
+.premium-receipt-modal {
+  position: relative;
+
+  width: 80mm;
+  max-width: 80mm;
+  min-width: 80mm;
+
+  margin: 0 auto;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 0;
+
+  overflow: visible;
+}
+
+
+/*
+  This makes the whole receipt visible on the screen.
+  The PRINT size is still 80mm.
+*/
+
+.fixed.inset-0.z-50 {
+  overflow-y: auto !important;
+  align-items: flex-start !important;
+  padding-top: 18px !important;
+  padding-bottom: 18px !important;
+}
+
+
+/* =========================================================
+   TOP SCREEN BAR
+========================================================= */
+
+.premium-receipt-topbar {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 10px;
+
+  color: #ffffff;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  letter-spacing: 0.6px;
+}
+
+.premium-top-label {
+  color: #d8b36a;
+
+  font-size: 8px;
+  font-weight: 800;
+
+  letter-spacing: 1px;
+
+  text-transform: uppercase;
+}
+
+.premium-bill-number {
+  margin-top: 2px;
+
+  color: #ffffff;
+
+  font-size: 9px;
+}
+
+
+/* =========================================================
+   CLOSE BUTTON
+========================================================= */
+
+.premium-close {
+  width: 34px;
+  height: 34px;
+
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+
+  font-size: 21px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.premium-close:hover {
+  background: #ffffff;
+  color: #155d3b;
+}
+
+
+/* =========================================================
+   RECEIPT PAPER
+   80MM - DO NOT CHANGE
+========================================================= */
+
+.premium-receipt-paper {
+  width: 80mm;
+  max-width: 80mm;
+  min-width: 80mm;
+
+  box-sizing: border-box;
+
+  background: #fffdf7;
+  color: #20251f;
+
+  padding: 5mm 4.5mm 0;
+
+  border-top: 4px solid #155d3b;
+
+  border-radius: 3px;
+
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.38),
+    0 5px 20px rgba(0, 0, 0, 0.18);
+
+  font-size: 10px;
+  line-height: 1.35;
+
+  overflow: hidden;
+}
+
+
+/* =========================================================
+   BRAND / HEADER
+========================================================= */
+
+.premium-brand {
+  text-align: center;
+
+  padding-bottom: 11px;
+
+  border-bottom: 1px dashed #b9c9be;
+}
+
+
+/* LOGO */
+
+.premium-logo {
+  width: 45px;
+  height: 45px;
+
+  margin: 0 auto 6px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 2px solid #155d3b;
+  border-radius: 50%;
+
+  background: #f8f4e9;
+
+  color: #155d3b;
+
+  font-size: 21px;
+  line-height: 1;
+}
+
+
+/* RESTAURANT NAME */
+
+.premium-restaurant-name {
+  margin: 0;
+
+  color: #155d3b;
+
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: 24px;
+  line-height: 1.05;
+
+  font-weight: 900;
+
+  letter-spacing: 1px;
+
+  text-transform: uppercase;
+}
+
+
+/* TAGLINE */
+
+.premium-tagline {
+  margin-top: 5px;
+
+  color: #9a6a2f;
+
+  font-size: 7.5px;
+  font-weight: 800;
+
+  letter-spacing: 1.8px;
+
+  text-transform: uppercase;
+}
+
+
+/* ADDRESS / PHONE / TAX */
+
+.premium-contact {
+  margin-top: 5px;
+
+  color: #555c57;
+
+  font-size: 7.5px;
+
+  line-height: 1.45;
+
+  text-align: center;
+
+  word-break: break-word;
+}
+
+.premium-tax-details {
+  color: #6a6f69;
+
+  font-size: 6.8px;
+}
+
+
+/* =========================================================
+   TAX INVOICE
+========================================================= */
+
+.premium-invoice-row {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  margin: 11px 0 8px;
+
+  color: #155d3b;
+
+  font-size: 13px;
+  font-weight: 900;
+
+  letter-spacing: 1px;
+}
+
+.premium-invoice-row span {
+  display: block;
+
+  width: 26px;
+  height: 1px;
+
+  background: #c28c42;
+}
+
+
+/* ORDER TYPE */
+
+.premium-order-badge {
+  display: block;
+
+  width: fit-content;
+
+  margin: 0 auto;
+
+  padding: 5px 17px;
+
+  border-radius: 20px;
+
+  background: #ead9b8;
+  color: #563b20;
+
+  font-size: 8px;
+  font-weight: 900;
+
+  letter-spacing: 0.5px;
+}
+
+
+/* =========================================================
+   BILL INFORMATION
+========================================================= */
+
+.premium-bill-info {
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  column-gap: 8px;
+
+  padding: 9px 0;
+
+  border-bottom: 1px dashed #b9c9be;
+}
+
+.premium-info-column {
+  min-width: 0;
+}
+
+.premium-info-row {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 5px;
+
+  margin: 3px 0;
+
+  font-size: 7.8px;
+
+  line-height: 1.35;
+}
+
+.premium-info-row strong {
+  color: #155d3b;
+
+  font-weight: 800;
+
+  white-space: nowrap;
+}
+
+.premium-info-row span {
+  color: #343936;
+
+  text-align: right;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   CUSTOMER
+========================================================= */
+
+.premium-customer {
+  margin-top: 7px;
+
+  padding: 7px 8px;
+
+  background: #f4f0e5;
+
+  border-left: 3px solid #b48a4a;
+
+  border-radius: 4px;
+
+  font-size: 8px;
+}
+
+.premium-customer .premium-section-title {
+  margin: 0 0 3px;
+}
+
+.premium-customer-name {
+  color: #155d3b;
+
+  font-weight: 800;
+}
+
+.premium-customer-phone {
+  margin-top: 2px;
+
+  color: #666d67;
+}
+
+
+/* =========================================================
+   SECTION TITLE
+========================================================= */
+
+.premium-section-title {
+  margin: 9px 0 5px;
+
+  color: #155d3b;
+
+  font-size: 8px;
+  font-weight: 900;
+
+  letter-spacing: 0.8px;
+
+  text-transform: uppercase;
+}
+
+
+/* =========================================================
+   ITEMS
+========================================================= */
+
+.premium-items {
+  width: 100%;
+
+  margin-top: 9px;
+}
+
+
+/* TABLE HEADER */
+
+.premium-items-head {
+  display: grid;
+
+  grid-template-columns:
+    5mm
+    minmax(0, 1fr)
+    8mm
+    14mm
+    18mm;
+
+  gap: 1mm;
+
+  align-items: center;
+
+  padding: 6px 3px;
+
+  background: #e1ece5;
+
+  border-top: 1px solid #b8c8bd;
+  border-bottom: 1px solid #b8c8bd;
+
+  color: #155d3b;
+
+  font-size: 7px;
+  font-weight: 900;
+
+  text-transform: uppercase;
+}
+
+
+/* ITEM */
+
+.premium-item {
+  display: grid;
+
+  grid-template-columns:
+    5mm
+    minmax(0, 1fr)
+    8mm
+    14mm
+    18mm;
+
+  gap: 1mm;
+
+  align-items: start;
+
+  padding: 7px 3px;
+
+  border-bottom: 1px dashed #d4d8d2;
+
+  font-size: 8.5px;
+}
+
+.premium-item-number {
+  color: #9a6a2f;
+
+  font-weight: 900;
+}
+
+.premium-item-details {
+  min-width: 0;
+}
+
+.premium-item-name {
+  color: #20251f;
+
+  font-size: 8.8px;
+  font-weight: 800;
+
+  line-height: 1.25;
+
+  word-break: break-word;
+}
+
+.premium-item-sub {
+  margin-top: 3px;
+
+  color: #777d78;
+
+  font-size: 6.5px;
+
+  line-height: 1.25;
+}
+
+.premium-item-qty,
+.premium-item-rate,
+.premium-item-total {
+  text-align: right;
+
+  white-space: nowrap;
+
+  font-size: 7.8px;
+}
+
+.premium-item-total {
+  color: #155d3b;
+
+  font-weight: 900;
+}
+
+
+/* =========================================================
+   SUMMARY
+========================================================= */
+
+.premium-summary {
+  padding: 8px 3px 7px;
+
+  border-bottom: 1px dashed #b9c9be;
+}
+
+.premium-summary-row {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  margin: 4px 0;
+
+  font-size: 8.5px;
+}
+
+.premium-summary-row span {
+  color: #454b47;
+}
+
+.premium-summary-row strong {
+  color: #242925;
+
+  font-weight: 800;
+}
+
+.premium-summary-row.discount strong {
+  color: #b04435;
+}
+
+
+/* =========================================================
+   GRAND TOTAL
+========================================================= */
+
+.premium-grand-total {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  margin-top: 9px;
+
+  padding: 10px 10px;
+
+  background: #dcebe1;
+
+  border: 1px solid #b7d0bf;
+
+  border-radius: 7px;
+
+  color: #104b30;
+
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.premium-grand-total span {
+  letter-spacing: 0.5px;
+}
+
+.premium-grand-total strong {
+  font-size: 16px;
+}
+
+
+/* =========================================================
+   PAYMENT
+========================================================= */
+
+.premium-payment {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin-top: 8px;
+
+  padding: 9px;
+
+  background: #edf5ef;
+
+  border: 1px solid #c9ddce;
+
+  border-radius: 7px;
+}
+
+.premium-payment-check {
+  width: 27px;
+  height: 27px;
+
+  flex: 0 0 27px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #239b58;
+
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.premium-payment-text {
+  flex: 1;
+
+  min-width: 0;
+}
+
+.premium-payment-text strong {
+  display: block;
+
+  color: #155d3b;
+
+  font-size: 8.5px;
+
+  font-weight: 900;
+}
+
+.premium-payment-text span {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #6c746e;
+
+  font-size: 7px;
+}
+
+.premium-payment-amount {
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: flex-end;
+
+  gap: 2px;
+
+  color: #155d3b;
+
+  white-space: nowrap;
+}
+
+.premium-payment-amount strong {
+  font-size: 8px;
+}
+
+.premium-payment-amount span {
+  font-size: 10px;
+  font-weight: 900;
+}
+
+
+/* =========================================================
+   UPI
+========================================================= */
+
+.premium-upi {
+  margin-top: 9px;
+
+  padding-top: 9px;
+
+  border-top: 1px dashed #b9c9be;
+
+  text-align: center;
+}
+
+.premium-upi-heading {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 6px;
+
+  color: #155d3b;
+
+  font-size: 8.5px;
+  font-weight: 900;
+
+  letter-spacing: 0.7px;
+}
+
+.premium-upi-heading::before,
+.premium-upi-heading::after {
+  content: "";
+
+  width: 22px;
+  height: 1px;
+
+  background: #b48a4a;
+}
+
+.premium-upi-subtitle {
+  margin-top: 3px;
+
+  color: #888e89;
+
+  font-size: 6.5px;
+}
+
+
+/* QR */
+
+.premium-qr-wrapper {
+  width: 33mm;
+  height: 33mm;
+
+  margin: 8px auto 5px;
+
+  padding: 2.5mm;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #ffffff;
+
+  border: 2px solid #b48a4a;
+
+  border-radius: 5px;
+
+  box-sizing: border-box;
+}
+
+.premium-qr-wrapper svg,
+.premium-qr-wrapper canvas,
+.premium-qr-wrapper img {
+  display: block;
+
+  width: 100% !important;
+  height: 100% !important;
+}
+
+
+/* UPI ID */
+
+.premium-upi-id {
+  color: #555d57;
+
+  font-size: 6.5px;
+  font-weight: 700;
+
+  word-break: break-all;
+}
+
+.premium-upi-amount {
+  margin-top: 3px;
+
+  color: #155d3b;
+
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.premium-upi-apps {
+  display: flex;
+
+  justify-content: center;
+
+  gap: 5px;
+
+  margin-top: 6px;
+
+  color: #707771;
+
+  font-size: 6.5px;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.premium-footer {
+  margin-top: 9px;
+
+  padding-top: 9px;
+
+  border-top: 1px dashed #b9c9be;
+
+  text-align: center;
+}
+
+.premium-thank-you {
+  color: #155d3b;
+
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: 21px;
+  font-style: italic;
+
+  font-weight: 700;
+}
+
+.premium-visit {
+  margin-top: 2px;
+
+  color: #858b86;
+
+  font-size: 7px;
+
+  letter-spacing: 1px;
+
+  text-transform: uppercase;
+}
+
+.premium-footer-line {
+  width: 30px;
+  height: 2px;
+
+  margin: 5px auto;
+
+  background: #b48a4a;
+}
+
+.premium-footer-features {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-around;
+
+  gap: 3px;
+
+  margin-top: 7px;
+
+  padding: 7px 4px;
+
+  background: #f2e8d3;
+
+  border-radius: 6px;
+
+  color: #4f351e;
+
+  font-size: 6px;
+  font-weight: 800;
+}
+
+.premium-powered {
+  margin: 8px -4.5mm 0;
+
+  padding: 8px 4mm;
+
+  background: #155d3b;
+
+  color: #ffffff;
+
+  font-size: 7px;
+  font-weight: 700;
+
+  letter-spacing: 0.3px;
+
+  text-align: center;
+}
+
+
+/* =========================================================
+   ACTION BUTTONS
+========================================================= */
+
+.premium-actions {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  width: 100%;
+
+  margin-top: 12px;
+
+  padding-bottom: 5px;
+}
+
+.premium-action {
+  padding: 8px 11px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: #155d3b;
+  color: #ffffff;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.premium-action:hover {
+  background: #104b30;
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   PRINT - EXACT 80MM THERMAL
+========================================================= */
 
 @media print {
+
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
 
   html,
   body {
     width: 80mm !important;
+    min-width: 80mm !important;
+
     margin: 0 !important;
     padding: 0 !important;
-    background: white !important;
+
+    background: #ffffff !important;
   }
 
   body * {
     visibility: hidden !important;
   }
 
-  .print-receipt,
-  .print-receipt * {
+  .premium-receipt-paper,
+  .premium-receipt-paper * {
     visibility: visible !important;
   }
 
-  .print-receipt {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
-
-    overflow: visible !important;
-    max-height: none !important;
+  .premium-receipt-modal {
+    position: static !important;
 
     width: 80mm !important;
     max-width: 80mm !important;
+    min-width: 80mm !important;
 
     margin: 0 !important;
     padding: 0 !important;
 
-    background: white !important;
-    color: #000 !important;
+    display: block !important;
 
-    box-shadow: none !important;
-    border: none !important;
+    background: transparent !important;
+
+    overflow: visible !important;
+  }
+
+  .premium-receipt-paper {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    min-width: 80mm !important;
+
+    margin: 0 !important;
+
+    padding: 4mm 4mm 0 !important;
+
     border-radius: 0 !important;
 
-    font-family: Arial, Helvetica, sans-serif !important;
+    box-shadow: none !important;
+
+    overflow: visible !important;
+
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
-  .receipt-body {
-    width: 80mm !important;
-    padding: 4mm !important;
-    box-sizing: border-box !important;
-  }
-
+  .premium-receipt-topbar,
+  .premium-close,
+  .premium-actions,
   .no-print {
     display: none !important;
   }
 
-  @page {
-    size: 80mm auto;
-    margin: 0;
+  .premium-powered {
+    margin-left: -4mm !important;
+    margin-right: -4mm !important;
   }
 }

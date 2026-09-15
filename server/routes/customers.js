@@ -1,24 +1,97 @@
-const express = require('express');
-const Customer = require('../models/Customer');
-const { authRequired } = require('../middleware/auth');
+const express = require("express");
+
+const Customer = require("../models/Customer");
+const Order = require("../models/Order");
+
+const { authRequired } = require("../middleware/auth");
+
 const router = express.Router();
 
-router.get('/', authRequired, async (req, res) => {
-  res.json(await Customer.find().sort({ createdAt: -1 }));
+// Get customers of logged-in restaurant only
+router.get("/", authRequired, async (req, res) => {
+  try {
+    const customers = await Customer.find({
+      restaurantId: req.user.restaurantId,
+    }).sort({ createdAt: -1 });
+
+    res.json(customers);
+  } catch (error) {
+    console.error("Get customers error:", error.message);
+
+    res.status(500).json({
+      message: "Failed to load customers",
+    });
+  }
 });
 
-router.post('/find-or-create', authRequired, async (req, res) => {
-  const { phone, name } = req.body;
-  let customer = await Customer.findOne({ phone });
-  if (!customer) customer = await Customer.create({ phone, name });
-  res.json(customer);
+// Find or create customer for logged-in restaurant
+router.post("/find-or-create", authRequired, async (req, res) => {
+  try {
+    const { phone, name } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({
+        message: "Phone number is required",
+      });
+    }
+
+    const restaurantId = req.user.restaurantId;
+
+    let customer = await Customer.findOne({
+      phone,
+      restaurantId,
+    });
+
+    if (!customer) {
+      customer = await Customer.create({
+        phone,
+        name: name || "",
+        restaurantId,
+      });
+    } else if (name && customer.name !== name) {
+      customer.name = name;
+      await customer.save();
+    }
+
+    res.json(customer);
+  } catch (error) {
+    console.error("Find/create customer error:", error.message);
+
+    res.status(500).json({
+      message: "Failed to find or create customer",
+    });
+  }
 });
 
-// Visit history for a customer
-router.get('/:id/history', authRequired, async (req, res) => {
-  const Order = require('../models/Order');
-  const orders = await Order.find({ customer: req.params.id }).sort({ createdAt: -1 });
-  res.json(orders);
+// Customer visit/order history
+router.get("/:id/history", authRequired, async (req, res) => {
+  try {
+    // First make sure customer belongs to current restaurant
+    const customer = await Customer.findOne({
+      _id: req.params.id,
+      restaurantId: req.user.restaurantId,
+    });
+
+    if (!customer) {
+      return res.status(404).json({
+        message: "Customer not found",
+      });
+    }
+
+    // Only orders from the same restaurant
+    const orders = await Order.find({
+      customer: req.params.id,
+      restaurantId: req.user.restaurantId,
+    }).sort({ createdAt: -1 });
+
+    res.json(orders);
+  } catch (error) {
+    console.error("Customer history error:", error.message);
+
+    res.status(500).json({
+      message: "Failed to load customer history",
+    });
+  }
 });
 
 module.exports = router;
