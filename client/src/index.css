@@ -1013,3 +1013,76 @@ body {
     margin-right: -4mm !important;
   }
 }
+
+/* =====================================================
+   MOBILE RESPONSIVE FIX
+===================================================== */
+
+@media (max-width: 768px) {
+
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden !important;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Main page */
+  .billing-page,
+  .billing-container,
+  .billing-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 12px !important;
+  }
+
+  /* Any fixed desktop width */
+  .billing-page > *,
+  .billing-container > *,
+  .billing-wrapper > * {
+    max-width: 100% !important;
+  }
+
+  /* Billing cards */
+  .billing-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Two-column billing layout → one column */
+  .billing-grid {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+  }
+
+  /* Inputs */
+  input,
+  select,
+  textarea,
+  button {
+    max-width: 100%;
+  }
+
+  /* Navigation */
+  .navbar,
+  .nav-container {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* If navigation has many items */
+  .nav-menu {
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
