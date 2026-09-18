@@ -6,6 +6,7 @@ import { ChefHat, LogOut } from 'lucide-react';
 export default function Navbar() {
   const { user, logout } = useAuth();
   const loc = useLocation();
+
   if (!user) return null;
 
   const tabs = [
@@ -22,24 +23,48 @@ export default function Navbar() {
   ].filter(t => t.roles.includes(user.role));
 
   return (
-    <div className="flex items-center justify-between bg-leaf text-ivory px-6 py-3 rounded-2xl mb-4 shadow">
-      <div className="flex items-center gap-2 font-bold text-lg">
-        <ChefHat size={22} /> RestaurantPOS
+    <div className="navbar flex items-center justify-between bg-leaf text-ivory px-6 py-3 rounded-2xl mb-4 shadow">
+
+      {/* BRAND */}
+      <div className="navbar-brand flex items-center gap-2 font-bold text-lg">
+        <ChefHat size={22} />
+        RestaurantPOS
       </div>
-      <div className="flex gap-1 bg-black/15 p-1 rounded-xl">
-        {tabs.map(t => (
-          <Link key={t.to} to={t.to}
-            className={`px-3 py-2 rounded-lg text-sm font-semibold ${loc.pathname === t.to ? 'bg-goldsoft text-leafdark' : 'opacity-80 hover:opacity-100'}`}>
-            {t.label}
-          </Link>
-        ))}
+
+      {/* NAVIGATION */}
+      <div className="nav-menu">
+        <div className="nav-menu-inner flex gap-1 bg-black/15 p-1 rounded-xl">
+          {tabs.map(t => (
+            <Link
+              key={t.to}
+              to={t.to}
+              className={`nav-tab px-3 py-2 rounded-lg text-sm font-semibold ${
+                loc.pathname === t.to
+                  ? 'bg-goldsoft text-leafdark'
+                  : 'opacity-80 hover:opacity-100'
+              }`}
+            >
+              {t.label}
+            </Link>
+          ))}
+        </div>
       </div>
-      <div className="flex items-center gap-3 text-sm">
-        <span>{user.name} · {user.role}</span>
-        <button onClick={logout} className="flex items-center gap-1 bg-black/20 px-3 py-1.5 rounded-lg text-xs font-semibold">
-          <LogOut size={14}/> Logout
+
+      {/* USER */}
+      <div className="navbar-user flex items-center gap-3 text-sm">
+        <span>
+          {user.name} · {user.role}
+        </span>
+
+        <button
+          onClick={logout}
+          className="flex items-center gap-1 bg-black/20 px-3 py-1.5 rounded-lg text-xs font-semibold"
+        >
+          <LogOut size={14} />
+          Logout
         </button>
       </div>
+
     </div>
   );
 }
